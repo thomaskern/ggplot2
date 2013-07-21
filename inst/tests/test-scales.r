@@ -177,13 +177,27 @@ test_that("scales clear existing scale", {
 })
 
 test_that("scales merges existing scale", {
-  p0 <- qplot(mpg, wt, data = mtcars) + ggplot2::scale_x_continuous(breaks=c(10,20)) 
+  df <- data.frame(x = 1:3, y=c(10,20,30), z = letters[1:3])
+  x <- function(p) ggplot_build(p)$panel$x_scales[[1]]
+          
+  p0 <- ggplot(df,aes(x,y,group=z,color=z)) + geom_line() +  ggplot2::scale_x_continuous(breaks=c(10,20)) 
   p1 <- p0 + ggplot2::scale_x_continuous(expand=c(1,2))
-  expect_equal(ggplot_build(p1)$panel$x_scales[[1]]$expand, c(1,2))
-  expect_equal(ggplot_build(p1)$panel$x_scales[[1]]$breaks, c(10,20))
+  expect_equal(x(p1)$expand, c(1,2))
+  expect_equal(x(p1)$breaks, c(10,20))
 
   p1 <- p0 + ggplot2::scale_x_continuous(breaks=c(1,2))
-  expect_equal(ggplot_build(p1)$panel$x_scales[[1]]$breaks, c(1,2))
+  expect_equal(x(p1)$breaks, c(1,2))
+
+  p1 <- p0 + ggplot2::scale_x_continuous(expand=c(0,2)) + ggplot2::scale_y_continuous(limits=c(5,3)) + ggplot2::scale_y_continuous(breaks=c(8,10)) + scale_colour_manual(values=c("RED","BLUE","GREEN"))
+  b = ggplot_build(p1)
+  x = b$panel$x_scales[[1]]
+  y = b$panel$y_scales[[1]]
+  d1 <- b$data[[1]]
+  expect_equal(x$breaks, c(10,20))
+  expect_equal(x$expand, c(0,2))
+  expect_equal(y$breaks, c(8,10))
+  expect_equal(y$limits, c(5,3))
+  expect_equal(d1$colour, c("RED","BLUE","GREEN"))
 })
 
 test_that("sca$is.identical closures",{
