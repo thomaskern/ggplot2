@@ -174,16 +174,18 @@ test_that("scales clear existing scale", {
   p1 <- p0 + ggplot2::scale_x_continuous(expand=c(1,2),clear=T)
   expect_equal(ggplot_build(p1)$panel$x_scales[[1]]$expand,c(1,2))
   expect_is(ggplot_build(p1)$panel$x_scales[[1]]$breaks, "waiver")
+  expect_message(p2 <- ggplot_build(p0 + scale_x_continuous()), "merged")
 })
 
 test_that("scales override different present scale type",{
   df <- data.frame(x = 1:6, y=c(10,20,30,20,30,40), z = letters[1:3])
   x <- function(p) ggplot_build(p)$panel$x_scales[[1]]
-          
   p0 <- ggplot(df,aes(x,y,group=z,color=z)) + geom_line() +  ggplot2::scale_x_continuous(breaks=c(1,2)) 
-  p1 <- p0 + ggplot2::scale_x_discrete()
 
-  expect_is(ggplot_build(p1)$panel$x_scales[[1]]$breaks, "waiver")
+  expect_is(x(p0 + scale_x_discrete())$breaks, "waiver")
+  expect_message(p2 <- ggplot_build(p0 + scale_x_discrete()), "scale is replaced by a scale of type")
+
+  expect_equal(x(p0 + scale_x_discrete(expand=c(0,0)) + scale_x_discrete(breaks=c(1,10)))$breaks, c(1,10))
 })
 
 test_that("scales merges existing scale", {
@@ -223,16 +225,16 @@ test_that("sca$is.identical closures",{
   tmp4 = function(x,f){a=5;function(n){x+n+f}}
   sca = Scales$new()
 
-  expect_true(sca$is.identical(tmp(),tmp()))
-  expect_false(sca$is.identical(tmp2(5),tmp()))
+  expect_false(sca$is.different(tmp(),tmp()))
+  expect_true(sca$is.different(tmp2(5),tmp()))
 
-  expect_true(sca$is.identical(tmp_(5),tmp_(5)))
-  expect_false(sca$is.identical(tmp_(8),tmp_(5)))
-  expect_true(sca$is.identical(tmp2(5),tmp2(5)))
-  expect_true(sca$is.identical(tmp3(5),tmp3(5)))
+  expect_false(sca$is.different(tmp_(5),tmp_(5)))
+  expect_true(sca$is.different(tmp_(8),tmp_(5)))
+  expect_false(sca$is.different(tmp2(5),tmp2(5)))
+  expect_false(sca$is.different(tmp3(5),tmp3(5)))
 
-  expect_true(sca$is.identical(tmp4(5),tmp4(5)))
-  expect_false(sca$is.identical(tmp4(5),tmp4(8)))
+  expect_false(sca$is.different(tmp4(5),tmp4(5)))
+  expect_true(sca$is.different(tmp4(5),tmp4(8)))
 })
 
 test_that("sca$is.identical lists",{
@@ -240,18 +242,18 @@ test_that("sca$is.identical lists",{
   tmp = function(){function(){}}
   tmp2 = function(x){function(){x}}
 
-  expect_true(sca$is.identical(list(a=1,b=tmp()),list(a=1,b=tmp())))
-  expect_false(sca$is.identical(list(a=1,b=tmp()),list(a=1,b=tmp2(8))))
-  expect_true(sca$is.identical(list(a=1,b=5),list(a=1,b=5)))
+  expect_false(sca$is.different(list(a=1,b=tmp()),list(a=1,b=tmp())))
+  expect_true(sca$is.different(list(a=1,b=tmp()),list(a=1,b=tmp2(8))))
+  expect_false(sca$is.different(list(a=1,b=5),list(a=1,b=5)))
 
-  expect_true(sca$is.identical(list(a=1,b=list(x=8)),list(a=1,b=list(x=8))))
-  expect_false(sca$is.identical(list(a=1,b=list(x=9)),list(a=1,b=list(x=8))))
+  expect_false(sca$is.different(list(a=1,b=list(x=8)),list(a=1,b=list(x=8))))
+  expect_true(sca$is.different(list(a=1,b=list(x=9)),list(a=1,b=list(x=8))))
 })
 
 test_that("sca$is.identical non-closures",{
   sca = Scales$new()
-  expect_true(sca$is.identical("ggplot","ggplot"))
-  expect_false(sca$is.identical("ggplot2","ggplot"))
-  expect_true(sca$is.identical(5,5))
-  expect_false(sca$is.identical(6,5))
+  expect_false(sca$is.different("ggplot","ggplot"))
+  expect_true(sca$is.different("ggplot2","ggplot"))
+  expect_false(sca$is.different(5,5))
+  expect_true(sca$is.different(6,5))
 })
