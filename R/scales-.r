@@ -10,17 +10,26 @@ Scales <- setRefClass("Scales", fields = "scales", methods = list(
     any(find(aesthetic))
   },
   add = function(scale) {
+    split.types = function(fcall) strsplit(as.character(fcall[[1]]),"_",fixed=TRUE)[[1]]
     prev_aes <- find(scale$aesthetics)
     if (any(prev_aes)) {
       # Get only the first aesthetic name in the returned vector -- it can
       # sometimes be c("x", "xmin", "xmax", ....)
       prevscale <- scales[prev_aes][[1]]
       scalename <- prevscale$aesthetics[1]
+      tprev <- split.types(prevscale$call)
+      tcurrent <- split.types(scale$call)
+
+      #print(str(prevscale))
+      #print("NEW ONE")
+      #print(str(scale))
 
       if(scale$clear){
-        message("Scale for '", scalename, "' is present but will be fully overriden by the new scale.")
-      }else{
-        scale = merge.scales(scale,scalename,prevscale)
+        message("Scale for '", scalename, "' is present but will be fully overridden by the new scale.")
+      } else if(!identical(tcurrent[1],tprev[1])){
+        message("Scale for '", scalename,"' is present but of type '", tprev[1],"'. The scale is replaced by a scale of type '", tcurrent[1],"'.")
+      } else{
+        scale = merge.scales(scale,scalename,prevscale, tcurrent)
         message("Scale for '", scalename,
           "' is already present. Adding another scale for '", scalename,
           "', which will be merged with the existing scale.")
@@ -51,9 +60,8 @@ Scales <- setRefClass("Scales", fields = "scales", methods = list(
       all(mapply(identical, as.list(environment(x1)), as.list(environment(x2))))
     }
   },
-  merge.scales = function(scale,scalename,prevscale){
-    t1 <- strsplit(as.character(scale$call[[1]]),"_",fixed=TRUE)[[1]]
-    default <- get(paste(t1[2],scalename,t1[1],sep="_"))()
+  merge.scales = function(scale,scalename,prevscale,types){
+    default <- get(paste(types[2],scalename,types[1],sep="_"))()
     s <- mapply(function(x1,x2,x3){
                  if(is.identical(x2,x3)) x1
                  else x2
